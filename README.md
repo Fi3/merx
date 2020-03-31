@@ -7,9 +7,6 @@
 
 ##
 
-// TODO specify that you can only add assets
-/fn prop_sub_same_kind_assets(amount1: i128, amount2: i128) -> TestResult {
-
 Merx is a library useful to talk about quantities in a safe way and with an eye on the
 performance. It is inspired by this
 [article](https://tech.fpcomplete.com/blog/safe-decimal-right-on-the-money) from
