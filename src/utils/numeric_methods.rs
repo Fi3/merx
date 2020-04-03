@@ -53,7 +53,7 @@ macro_rules! add_buffers {
                 let ri: [u8; $len] = std::mem::transmute_copy(&ri);
                 y = <$int_type>::from_le_bytes(ri);
             }
-            let sum = z.checked_add(y)?.to_le_bytes();
+            let sum = z.checked_add(y)?;
             let sum_: [u8; LEN];
             unsafe { sum_ = std::mem::transmute_copy(&sum) }
             Some(sum_)

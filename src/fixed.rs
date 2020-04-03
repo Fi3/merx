@@ -44,9 +44,11 @@ pub trait HasFixedOps<const BUF_LEN: usize>: HasBuf<BUF_LEN> {
 }
 pub trait HasBound<const MAX: i128, const BUF_LEN: usize>: HasFixedOps<BUF_LEN> {
 
+    // TODO change names in checked_add ec ecc
     #[inline]
     fn add_checked(self, rhs: Self) -> Option<Self> {
         let sum = self.add_inner(rhs)?.get_buf();
+        // TODO try to assert the buffer len so it will be pick the right branch
         match BUF_LEN {
             4 => buffer_is_less_or_equal_32(sum, MAX as i32)?,
             8 => buffer_is_less_or_equal_64(sum, MAX as i64)?,
@@ -134,6 +136,7 @@ macro_rules! get_fixed {
         const I128_LEN: usize = 16;
         
         #[derive(Copy, Clone)]
+        #[repr(align(8))]
         pub struct ByteArray<const BUF_LEN: usize>  ([u8; BUF_LEN]);
         
         macro_rules! int_partial_eq {
@@ -231,6 +234,7 @@ macro_rules! get_fixed {
         }
         
         #[derive(Copy, Clone)]
+        #[repr(align(8))]
         pub struct Fixed<const BUF_LEN: usize, const MAX: i128, const POW: u128>  (ByteArray<BUF_LEN>);
         
         macro_rules! fixed_part_eq {

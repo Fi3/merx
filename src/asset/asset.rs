@@ -37,8 +37,10 @@ pub trait CheckedOps: Sized {
 
 // TODO Display
 #[derive(Debug, Hash, Copy, Clone, Default, Ord, PartialOrd, Eq, PartialEq)]
+#[repr(align(8))]
 pub struct Debt<T: CheckedOps>(pub T);
 #[derive(Debug, Hash, Copy, Clone, Default, Ord, PartialOrd, Eq, PartialEq)]
+#[repr(align(8))]
 pub struct Credit<T: CheckedOps>(pub T);
 
 // Credit + Credit -> Credit?
@@ -92,10 +94,16 @@ impl<T: CheckedOps> ops::Add<Credit<T>> for Debt<T> {
 }
 
 #[derive(Debug, Hash, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[repr(align(8))]
 pub enum Asset<T: CheckedOps> {
     Debt(Debt<T>),
     Credit(Credit<T>),
 }
+//pub struct Asset1<T: CheckedOps> {
+//    val: T,
+//    is_debt: bool,
+//    // get_inner -> Debt(val) or Credit(val)
+//}
 
 impl<T: CheckedOps> Asset<T> {
 
@@ -243,8 +251,16 @@ macro_rules! new_asset {
             impl HasBound<MAX_VAL, BUFFER_LEN> for Fixed_ {}
             impl IsFixed<BUFFER_LEN, MAX_VAL, POW> for Fixed_ {}
 
+            pub fn inspect() {
+                println!("POW: {}", POW);
+                println!("MAX_VAL: {}", MAX_VAL);
+                println!("BUFFER_LEN: {}", BUFFER_LEN);
+            }
+
+            // TODO remove public
             #[derive(PartialEq, Copy, Clone)]
-            pub struct Value (Fixed_);
+            #[repr(align(8))]
+            pub struct Value (pub Fixed_);
 
             impl HasBuf<BUFFER_LEN> for Value {
 
