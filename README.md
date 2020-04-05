@@ -27,12 +27,12 @@ types with operator overloading.
 An asset can not owe a negative amount but can be either a credit or a debit, so that it must
 be explicitly stated when a negative amount is an option.
 
-Every time that an asset's amount overcome the upper bound [an Error is returned](TODO). If an
+Every time that an asset's amount overcome the upper bound [an Error is returned][TODO]. If an
 asset do not specify an upper bound, then [`i128` is used as inner value of the asset and the upper
-bound is set to `i128::max_value()`](TODO). 
+bound is set to `i128::max_value()`][TODO]. 
 
 When we add/subtract assets or assets are multiplied by a number, the result is checked for
-overflows, and in case of an overflow an [Error is returned](TODO).
+overflows, and in case of an overflow an [Error is returned][TODO].
 
 An exchange rate between two different assets can be set, then is possible to convert (explicitly)
 one asset in the other and vice versa.
