@@ -9,7 +9,7 @@
 // 8. define an asset that can no be represented by an i128 result in a panic
 // 9. overflowing operations on Assets result in None
 // 8. TODO exchange rates
-// 10. TODO operetor overloading for `== <= >= !=`                                       ###!
+// 10. TODO operator overloading for `== <= >= !=`                                       ###!
 // 11. impossible build an asset from float when float is more precise then asset
 // 11. TODO float precision
 use quickcheck::{quickcheck, TestResult};
@@ -40,6 +40,25 @@ fn prop_add_same_kind_assets(amount1: i128, amount2: i128) -> TestResult {
         _ => TestResult::discard(),
     }
 
+}
+
+#[quickcheck]
+fn prop_mul_asset_with_num(amount1: i128, operator: i128) -> TestResult {
+    type MyAsset = Asset<test_asset1::Value>;
+    let asset1 = MyAsset::try_from(amount1);
+    match asset1 {
+        Ok(asset1) => {
+            let asset2 = asset1 * operator;
+            match asset2 {
+                Some(asset2) => {
+                    let expected = amount1 * operator;
+                    TestResult::from_bool(expected == asset2.to_int())
+                }
+                _ => TestResult::discard(),
+            }
+        }
+        _ => TestResult::discard(),
+    }
 }
 
 #[quickcheck]
