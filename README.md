@@ -7,6 +7,15 @@
 
 ##
 
+**Pre-beta version** if you think that merx can be useful or you like it, [here](link TODO) a
+thread about which direction this library should take.
+
+##
+
+rustc version >= (1edd389cc 2020-03-23)
+
+##
+
 Merx is a library useful to talk about quantities in a safe way and with an eye on the
 performance. It is inspired by this
 [article](https://tech.fpcomplete.com/blog/safe-decimal-right-on-the-money) from
@@ -16,7 +25,7 @@ performance. It is inspired by this
 Merx let you defines assets. An asset is everything that has an amount and can be divided, for
 example an asset could be a currency, a commodity, (a physical quantity?) ecc ecc
 
-An asset is charaterized by a minimum quantity (unit), the smallest part of the asset that you
+An asset is characterized by a minimum quantity (unit), the smallest part of the asset that you
 can have or that it make sense to talk about. Sometimes (a lot) is possible to think of an upper
 bound for the asset, so we can define it and make impossible to create values that are too big.
 
@@ -25,7 +34,9 @@ overloading. Multiplication and division are implemented between assets and nume
 types with operator overloading.
 
 An asset can not owe a negative amount but can be either a credit or a debit, so that it must
-be explicitly stated when a negative amount is an option.
+be explicitly stated when a negative amount is an option. (If a function accept Asset it means
+that work on both positive or negative amounts, but when it accept Credit or Debt you can be sure
+that it works only on positive or only on negative amounts.
 
 Every time that an asset's amount overcome the upper bound [an Error is returned][TODO]. If an
 asset do not specify an upper bound, then [`i128` is used as inner value of the asset and the upper
@@ -34,88 +45,104 @@ bound is set to `i128::max_value()`][TODO].
 When we add/subtract assets or assets are multiplied by a number, the result is checked for
 overflows, and in case of an overflow an [Error is returned][TODO].
 
+TODO
 An exchange rate between two different assets can be set, then is possible to convert (explicitly)
 one asset in the other and vice versa.
 
-The library expose:
+Merx expose `Asset` a wrapper around a `Debt` or a `Credit` that are wrapper around a numeric value,
+for now they work only with a dummy internal fixed value, but I want to make it generic so that it
+can be selected when the asset is defined.
 ```rust
-pub strruct Debt(FIXED);
-pub strruct Credit(FIXED);
+pub struct <T: NUMERIC>Debt(T);
+pub struct <T: NUMERIC>Credit(T);
 
-pub enum Asset<T> {
-    Debt(Debt(T)),
+pub enum Asset<T: NUMERIC> {
+    Debt(Debt(T)),NUMERIC
     Credit(Credit(T)),
 }
 ```
 
 The permitted operations are: `Credit - Debt` `Credit + Credit` `Debt + Credit` `Debt + Debt` 
-`Asset + Asset`
+`Asset + Asset`. Because `Credit` can not own a negative value, `Debt` can not owe a positive value
+and `Asset` is either a `Credit` or a `Debt`, is not clear what addition and subtraction between
+assets means in my opinion the possibilities that make more sense are:
+1. only add(A, B) exist:
+`Asset(x) + Asset(-y) = Asset(x +  (-y))`
+2. add(A, B) == sub(A, B) 
+`Asset(x) + Asset(-y) = Asset(x +  (-y)) && Asset(x) - Asset(-y) = Asset(x + (-y))`
+3. add(A, B) == sub(A, -B)
+`Asset(x) + Asset(-y) = Asset(x +  (-y)) && Asset(x) - Asset(-y) = Asset(x - (-y))`
 
+For the moment add and sub behave like (1), because I think that is the less error prone behavior
+and the merx main goal is safety, by the way usability is also important and I think that (1) is
+not very usable.
 
 ## Example
 ```rust
-use merx::{Asset, Credit, Debit, Error}
+#[macro_use]
+extern crate merx;
+use merx::{Asset, Debt, Credit, asset::CheckedOps};
 
-new_asset!(bitcoin, 100000000, 21_000_000);
-new_asset!(usd, 100, 14_000_000_000_000);
+get_traits!();
 
-// TODO asset_change!("USD", "Bitcoin", get_change);
+// Create a new asset called bitcoin with 8 decimal digits and a max value of 21 million of units
+new_asset!(bitcoin, 8, 21_000_000);
+// Create a new asset called usd with 2 decimal digits and a max value of 14_000_000_000_000 units
+new_asset!(usd, 2, 14_000_000_000_000);
 
 type Bitcoin = Asset<bitcoin::Value>;
 type Usd = Asset<usd::Value>;
 
-// Adding assets of type T return an asset of type T
-fn add_assets<T: Asset>(x: T, y: T) -> Option<Asset<T>> {
-    x + y
-};
-
-// Adding credits can only result in a Credit
-fn add_credits<T>(x: Credit<T>, y: Credit<T>) -> Option<Credit<T>> {
-    x + y
-}
-
-// Adding debts can only result in a Debt
-fn add_credits<T>(x: Debt<T>, y: Debt<T>) -> Option<Debt<T>> {
-    x + y
-}
-
-// Adding debts can only result in a Debt
-fn add_credits<T>(x: Debt<T>, y: Debt<T>) -> Option<Debt<T>> {
-    x + y
-}
-
-fn interests<T: Asset, X: Num>(asset: T, periods: X, interest_rate: X) -> Option<Asset<T>> {
-    // TODO The user can decide how precise it want to be choosing the type of the factor*
-    let factor = i128::checked_pow((1 + interest_rate), periods)?;
-    asset * factor
-}
-
 fn main() {
-    let tot_amount = Bitcoin::from_num(679, 1); // -> 67.9 btc
-    let to_pay = Bitcoin::try_from(-79, 1); // -> -7.9 btc
-    let remain = (tot_amount - to_pay)?;
+    // A tuple that define a decimal value as (mantissa, decimal part)
+    let tot_amount = (679, 1); // -> 67.9
+    let tot_amount = Bitcoin::try_from(tot_amount).unwrap();
+    let to_pay = Bitcoin::try_from(-29).unwrap();
+    let remain = (tot_amount + to_pay).unwrap();
+    println!("{:#?}", remain);
 
     // TODO smouthly conversion
     //let x: USD = match remain {
     //    Credit(x) => interests(USD::from(x), 12, 3);
-    //    Debit(x) => interests(USD::from(x), 12, 3);
+    //    Debt(x) => interests(USD::from(x), 12, 3);
     //};
 }
-// * if the precision of the operator is less than the one of the Asset the Asset's precision is used
+
+// You can define function over generic assets:
+
+// Adding assets of type T return an asset of type T
+fn add_assets<T: CheckedOps>(x: Asset<T>, y: Asset<T>) -> Option<Asset<T>> {
+    x + y
+}
+
+// Adding credits can only result in a Credit
+fn add_credits<T: CheckedOps>(x: Credit<T>, y: Credit<T>) -> Option<Credit<T>> {
+    x + y
+}
+
+// Adding debts can only result in a Debt
+fn add_debts<T: CheckedOps>(x: Debt<T>, y: Debt<T>) -> Option<Debt<T>> {
+    x + y
+}
+
+// Adding debts can only result in a Debt
+fn add_debts2<T: CheckedOps>(x: Debt<T>, y: Debt<T>) -> Option<Debt<T>> {
+    x + y
+}
 ```
 
-## Saefty
+## Safety
 
-1. Is impossible to add assets of differnet types or asset with primitive numeric values.
+1. Is impossible to add assets of different types or asset with numeric values.
 2. Every operation that concern assets (add mul div) is checked and fail on incorrect values.
-3. Build assets from primitive types is save [TODO].
-4. The library have 0 dependency.
-5. When the result of an operation is positive we have a `Credit` otherwise we have `Debt`, is not
+3. Build assets from primitive types is safe [TODO].
+4. When the result of an operation is positive we have a `Credit` otherwise we have `Debt`, is not
 possible to build a `Credit` with a negative value or a `Debt` with a positive value.
+5. The library have 0 dependency.
 
 ## Performance
 
-Adding assets mean do a `checked_add` and check if the value is less or equal than max. The 
+Internally adding assets mean do a `checked_add` and check if the value is less or equal than max. The 
 library seems to be a little faster in doing that than a plain function like the below:
 
 ```rust
@@ -152,11 +179,9 @@ Found 9 outliers among 100 measurements (9.00%)
   6 (6.00%) high severe
 ```
 
-This it happen also when assets are multiplied or divided. I think that the library is not
-slow but I can't justify the above numbers. I'm not confident in these benchmarks and in my
+This happens also when assets are multiplied or divided. I think that the library is not
+slow but I can not justify the above numbers. I'm not confident in these benchmarks and in my
 benchmarking ability, the benchmarks must be reviewed.
-
-
 
 ## Precision
 
@@ -164,23 +189,40 @@ benchmarking ability, the benchmarks must be reviewed.
 
 ## Alternatives
 
-I couldn't be able to find any library like merx.
-If you need something to do fixed arithmetic in rust there is
-(fixed)[https://docs.rs/fixed/0.5.4/fixed/].
-Money libraries [TODO]
-If you need to manipulate units of measure there is [yaiouom](https://github.com/Yoric/yaiouom)
+The similest crate that I have been able to find is [commodity](https://crates.io/crates/commodity),
+merx is different from commodity in ... TODO
+
+Below a list of crates that solve problems that are similar or related at the one solved by merx.
+
+**Fixed point arithmetic**
+* [fixed](https://docs.rs/fixed/0.5.4/fixed/).
+*  ... TODO
+
+**Decimal**
+* [rust_decimal](https://crates.io/crates/rust_decimal)
+
+**Money crates**
+[TODO]
+
+**Units crates**
+* [yaiouom](https://github.com/Yoric/yaiouom)
+* ... TODO
 
 ## Todo
 
- - [ ] When fixed support generic const use Fixed as inner type, or export ./fixed.rs in a separate crate
- - [ ] Precise mod with bigint insted of fixed point
+ - [ ] Use the crate fixed as inner type (when it will support generic const)
  - [ ] Impl PartialEq for Asset and all the primitive numeric types
  - [ ] Add error with thiserror
  - [ ] Serde serialize deserialize
  - [ ] Division and multiplication between asset, float and between asset and fixed
  - [ ] Add all standard operations for rationals like truncate floor ecc ecc
  - [ ] Add conversion between assets
+ - [ ] A lot of public thinghs should be private
+ - [ ] Benchmarks
+ - [ ] Documentation
+ - [ ] Precise modality with bigint insted of fixed point
+ - [ ] Add the possibility to define a rounding strategy when an asset is defined
 
 ## License
 
-[UNLICENSE](https://unlicense.org/)
+MIT OR [UNLICENSE](https://unlicense.org/)

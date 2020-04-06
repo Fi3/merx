@@ -1,20 +1,20 @@
 use std::convert::TryFrom;
 use crate::utils::numeric_methods::*;
 
-pub trait HasBuf<const BUF_LEN: usize>: Sized {
-    fn get_buf(self) -> [u8; BUF_LEN];
-    fn from_buf_unchecked(value: [u8; BUF_LEN]) -> Self;
+pub trait ArrayWrapper<const LEN: usize>: Sized {
+    fn get_array(self) -> [u8; LEN];
+    fn from_array_unchecked(value: [u8; LEN]) -> Self;
 }
         
 
-pub trait HasFixedOps<const BUF_LEN: usize>: HasBuf<BUF_LEN> {
+pub trait HasFixedOps<const LEN: usize>: ArrayWrapper<LEN> {
 
     #[inline(always)]
     fn add_inner(self, rhs: Self) -> Option<Self> {
-        match BUF_LEN {
-            4 => Some(Self::from_buf_unchecked(add_buffers_32(self.get_buf(), rhs.get_buf())?)),
-            8 => Some(Self::from_buf_unchecked(add_buffers_64(self.get_buf(), rhs.get_buf())?)),
-            16 => Some(Self::from_buf_unchecked(add_buffers_128(self.get_buf(), rhs.get_buf())?)),
+        match LEN {
+            4 => Some(Self::from_array_unchecked(add_buffers_32(self.get_array(), rhs.get_array())?)),
+            8 => Some(Self::from_array_unchecked(add_buffers_64(self.get_array(), rhs.get_array())?)),
+            16 => Some(Self::from_array_unchecked(add_buffers_128(self.get_array(), rhs.get_array())?)),
             _ => panic!("IsFixed is implemented only fo array of len 4 8 and 16"),
         }
     }
@@ -22,10 +22,10 @@ pub trait HasFixedOps<const BUF_LEN: usize>: HasBuf<BUF_LEN> {
     #[inline]
     fn mul_inner<T: Into<i128>>(self, rhs: T) -> Option<Self> {
         let rhs: i128 = rhs.into();
-        match BUF_LEN {
-            4 => Some(Self::from_buf_unchecked(mul_buffer_32(self.get_buf(), rhs as i32)?)),
-            8 => Some(Self::from_buf_unchecked(mul_buffer_64(self.get_buf(), rhs as i64)?)),
-            16 => Some(Self::from_buf_unchecked(mul_buffer_128(self.get_buf(), rhs as i128)?)),
+        match LEN {
+            4 => Some(Self::from_array_unchecked(mul_buffer_32(self.get_array(), rhs as i32)?)),
+            8 => Some(Self::from_array_unchecked(mul_buffer_64(self.get_array(), rhs as i64)?)),
+            16 => Some(Self::from_array_unchecked(mul_buffer_128(self.get_array(), rhs as i128)?)),
             _ => panic!("IsFixed is implemented only fo array of len 4 8 and 16"),
         }
     }
@@ -33,80 +33,79 @@ pub trait HasFixedOps<const BUF_LEN: usize>: HasBuf<BUF_LEN> {
     #[inline]
     fn div_inner<T: Into<i128>>(self, rhs: T) -> Option<Self> {
         let rhs: i128 = rhs.into();
-        match BUF_LEN {
-            4 => Some(Self::from_buf_unchecked(div_buffer_32(self.get_buf(), rhs as i32)?)),
-            8 => Some(Self::from_buf_unchecked(div_buffer_64(self.get_buf(), rhs as i64)?)),
-            16 => Some(Self::from_buf_unchecked(div_buffer_128(self.get_buf(), rhs as i128)?)),
+        match LEN {
+            4 => Some(Self::from_array_unchecked(div_buffer_32(self.get_array(), rhs as i32)?)),
+            8 => Some(Self::from_array_unchecked(div_buffer_64(self.get_array(), rhs as i64)?)),
+            16 => Some(Self::from_array_unchecked(div_buffer_128(self.get_array(), rhs as i128)?)),
             _ => panic!("IsFixed is implemented only fo array of len 4 8 and 16"),
         }
     }
 
 }
-pub trait HasBound<const MAX: i128, const BUF_LEN: usize>: HasFixedOps<BUF_LEN> {
+pub trait HasBound<const MAX: i128, const LEN: usize>: HasFixedOps<LEN> {
 
     // TODO change names in checked_add ec ecc
     #[inline]
     fn add_checked(self, rhs: Self) -> Option<Self> {
-        let sum = self.add_inner(rhs)?.get_buf();
-        // TODO try to assert the buffer len so it will be pick the right branch
-        match BUF_LEN {
+        let sum = self.add_inner(rhs)?.get_array();
+        match LEN {
             4 => buffer_is_less_or_equal_32(sum, MAX as i32)?,
             8 => buffer_is_less_or_equal_64(sum, MAX as i64)?,
             16 => buffer_is_less_or_equal_128(sum, MAX as i128)?,
             _ => panic!("HasBound is implemented only fo array of len 4 8 and 16"),
         };
-        Some(Self::from_buf_unchecked(sum))
+        Some(Self::from_array_unchecked(sum))
     }
 
     #[inline]
     fn mul_checked(self, rhs: i128) -> Option<Self> {
-        let mul = self.mul_inner(rhs)?.get_buf();
-        match BUF_LEN {
+        let mul = self.mul_inner(rhs)?.get_array();
+        match LEN {
             4 => buffer_is_less_or_equal_32(mul, MAX as i32)?,
             8 => buffer_is_less_or_equal_64(mul, MAX as i64)?,
             16 => buffer_is_less_or_equal_128(mul, MAX as i128)?,
             _ => panic!("HasBound is implemented only fo array of len 4 8 and 16"),
         };
-        Some(Self::from_buf_unchecked(mul))
+        Some(Self::from_array_unchecked(mul))
     }
     
     #[inline]
     fn div_checked(self, rhs: i128) -> Option<Self> {
-        let div = self.div_inner(rhs)?.get_buf();
-        match BUF_LEN {
+        let div = self.div_inner(rhs)?.get_array();
+        match LEN {
             4 => buffer_is_less_or_equal_32(div, MAX as i32)?,
             8 => buffer_is_less_or_equal_64(div, MAX as i64)?,
             16 => buffer_is_less_or_equal_128(div, MAX as i128)?,
             _ => panic!("HasBound is implemented only fo array of len 4 8 and 16"),
         };
-        Some(Self::from_buf_unchecked(div))
+        Some(Self::from_array_unchecked(div))
     }
 
-    fn from_raw_buffer_checked(buf: [u8; BUF_LEN]) -> Option<Self> {
-        match BUF_LEN {
+    fn from_raw_buffer_checked(buf: [u8; LEN]) -> Option<Self> {
+        match LEN {
             4 => buffer_is_less_or_equal_32(buf, MAX as i32)?,
             8 => buffer_is_less_or_equal_64(buf, MAX as i64)?,
             16 => buffer_is_less_or_equal_128(buf, MAX as i128)?,
             _ => panic!("Fixed is implemented only fo array of len 4 8 and 16"),
         };
-        Some(Self::from_buf_unchecked(buf))
+        Some(Self::from_array_unchecked(buf))
     }
 }
 
-pub trait IsFixed<const BUF_LEN: usize, const MAX: i128, const POW: u128>: Sized + HasBuf<BUF_LEN> {
+pub trait IsFixed<const LEN: usize, const MAX: i128, const POW: u128>: Sized + ArrayWrapper<LEN> {
 
     fn to_parts(self) -> (i128, i128, u128) {
-        match BUF_LEN {
+        match LEN {
             4 => {
-                let (int, frac, p) = buffer_to_parts_32::<BUF_LEN, POW>(self.get_buf());
+                let (int, frac, p) = buffer_to_parts_32::<LEN, POW>(self.get_array());
                 (int as i128, frac as i128, p)
             }
             8 => {
-                let (int, frac, p) = buffer_to_parts_64::<BUF_LEN, POW>(self.get_buf());
+                let (int, frac, p) = buffer_to_parts_64::<LEN, POW>(self.get_array());
                 (int as i128, frac as i128, p)
             }
             16 => {
-                let (int, frac, p) = buffer_to_parts_128::<BUF_LEN, POW>(self.get_buf());
+                let (int, frac, p) = buffer_to_parts_128::<LEN, POW>(self.get_array());
                 (int as i128, frac as i128, p)
             }
             _ => panic!("impossible state"),
@@ -115,10 +114,10 @@ pub trait IsFixed<const BUF_LEN: usize, const MAX: i128, const POW: u128>: Sized
 
 
     fn is_positive(self) -> bool {
-        match BUF_LEN {
-            4 => buffer_is_positive_32(self.get_buf()),
-            8 => buffer_is_positive_64(self.get_buf()),
-            16 => buffer_is_positive_128(self.get_buf()),
+        match LEN {
+            4 => buffer_is_positive_32(self.get_array()),
+            8 => buffer_is_positive_64(self.get_array()),
+            16 => buffer_is_positive_128(self.get_array()),
             _ => panic!("Fixed is implemented only fo array of len 4 8 and 16"),
         }
     }
@@ -129,7 +128,7 @@ macro_rules! get_fixed {
     () => {
         use std::convert::TryFrom;
         use $crate::utils::numeric_methods::*;
-        use $crate::fixed::{HasBuf, HasFixedOps, HasBound, IsFixed};
+        use $crate::fixed::{ArrayWrapper, HasFixedOps, HasBound, IsFixed};
 
         const I32_LEN: usize = 4;
         const I64_LEN: usize = 8;
@@ -137,7 +136,7 @@ macro_rules! get_fixed {
         
         #[derive(Copy, Clone)]
         #[repr(align(8))]
-        pub struct ByteArray<const BUF_LEN: usize>  ([u8; BUF_LEN]);
+        pub struct ByteArray<const LEN: usize>  ([u8; LEN]);
         
         macro_rules! int_partial_eq {
             ($len:ident, $impl_:ident) => {
@@ -222,20 +221,20 @@ macro_rules! get_fixed {
         int_into!(I64_LEN, i64);
         int_into!(I128_LEN, i128);
         
-        impl<const BUF_LEN: usize> HasBuf<BUF_LEN> for ByteArray<BUF_LEN> {
+        impl<const LEN: usize> ArrayWrapper<LEN> for ByteArray<LEN> {
             #[inline(always)]
-            fn get_buf(self) -> [u8; BUF_LEN] {
+            fn get_array(self) -> [u8; LEN] {
                 self.0
             }
             #[inline]
-            fn from_buf_unchecked(buf: [u8; BUF_LEN]) -> Self {
+            fn from_array_unchecked(buf: [u8; LEN]) -> Self {
                 ByteArray(buf)
             }
         }
         
         #[derive(Copy, Clone)]
         #[repr(align(8))]
-        pub struct Fixed<const BUF_LEN: usize, const MAX: i128, const POW: u128>  (ByteArray<BUF_LEN>);
+        pub struct Fixed<const LEN: usize, const MAX: i128, const POW: u128>  (ByteArray<LEN>);
         
         macro_rules! fixed_part_eq {
             ($len:ident) => {
@@ -273,24 +272,24 @@ macro_rules! get_fixed {
         fixed_try_from!(I64_LEN, i64);
         fixed_try_from!(I128_LEN, i128);
         
-        impl<const LEN: usize, const MAX: i128, const POW: u128> HasBuf<LEN> for Fixed<LEN, MAX, POW> {
+        impl<const LEN: usize, const MAX: i128, const POW: u128> ArrayWrapper<LEN> for Fixed<LEN, MAX, POW> {
             #[inline]
-            fn get_buf(self) -> [u8; LEN] {
+            fn get_array(self) -> [u8; LEN] {
                 let inner = self.0;
                 inner.0
             }
             #[inline]
-            fn from_buf_unchecked(buf: [u8; LEN]) -> Self {
+            fn from_array_unchecked(buf: [u8; LEN]) -> Self {
                 Fixed(ByteArray(buf))
             }
         }
         
         
         impl<
-            const BUF_LEN: usize,
+            const LEN: usize,
             const MAX: i128,
             const POW: u128
-            > HasFixedOps<BUF_LEN> for Fixed<BUF_LEN, MAX, POW> {}
+            > HasFixedOps<LEN> for Fixed<LEN, MAX, POW> {}
         
         
         // Fixed from (decimal_int, decimal_exp) for example if the Fixed has precision = 2
@@ -316,7 +315,7 @@ macro_rules! get_fixed {
                         let normalized_val = value * normalized_pow as i128;
                         if normalized_val <= MAX {
                             let buf = <[u8; $len]>::try_from(&normalized_val.to_le_bytes()[0..$len]).unwrap();
-                            Ok(Self::from_buf_unchecked(buf))
+                            Ok(Self::from_array_unchecked(buf))
                         } else {
                             Err(())
                         }
@@ -343,7 +342,7 @@ macro_rules! get_fixed {
                         let frac = (POW as f64).log10() as u8;
                         let value = checked_int_from_f64(MAX as u128, frac, value).ok_or(())?;
         		let buf = <[u8; $len]>::try_from(&value.to_le_bytes()[0..$len]).unwrap();
-        		Ok(Self::from_buf_unchecked(buf))
+        		Ok(Self::from_array_unchecked(buf))
                         //Self::try_from(value)
                     }
                 }

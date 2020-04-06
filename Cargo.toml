@@ -1,10 +1,14 @@
 [package]
 name = "merx"
-version = "0.1.0"
-authors = ["Your Name <you@example.com>"]
+version = "0.0.1"
+authors = ["Filippo Merli <fmerli1@gmail.com>"]
+license = "MIT OR UNLICENSE" 
+description = "Merx is a library useful to talk about quantities in a safe way and with an eye on the performance."
+repository = "https://github.com/fi3/merx/"
+keywords = ["wrapper", "currency", "money", "financial", "fixed"]
+categories = ["cryptography::cryptocurrencies", "data-structures", "mathematics", "science", "simulation"]
+readme = "README.md"
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 
