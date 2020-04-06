@@ -7,7 +7,7 @@
 
 ##
 
-**Pre-beta version** if you think that merx can be useful or you like it, [here](link TODO) a
+**Pre-beta version** if you think that merx can be useful or you like it, [here](https://users.rust-lang.org/t/help-annuncment-merx-let-you-define-decimal-safe-types/40531) a
 thread about which direction this library should take.
 
 ##
