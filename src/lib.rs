@@ -19,4 +19,4 @@ pub mod asset;
 
 pub mod utils;
 
-pub use asset::{Debt, Credit, Asset};
+pub use asset::{Asset, Credit, Debt};

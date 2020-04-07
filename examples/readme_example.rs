@@ -9,7 +9,7 @@
 
 #[macro_use]
 extern crate merx;
-use merx::{Asset, Debt, Credit, asset::CheckedOps};
+use merx::{asset::CheckedOps, Asset, Credit, Debt};
 
 get_traits!();
 
@@ -57,4 +57,3 @@ fn add_debts<T: CheckedOps>(x: Debt<T>, y: Debt<T>) -> Option<Debt<T>> {
 fn add_debts2<T: CheckedOps>(x: Debt<T>, y: Debt<T>) -> Option<Debt<T>> {
     x + y
 }
-

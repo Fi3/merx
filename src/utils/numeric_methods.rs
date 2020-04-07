@@ -9,12 +9,11 @@ pub fn checked_int_from_f64(max_val: u128, precision: u8, val: f64) -> Option<i1
         return None;
     }
     if val.fract() == 0.0 {
-	Some(val as i128)
+        Some(val as i128)
     } else {
         None
     }
 }
-
 
 pub fn round_value_up(max_val: u128, precision: u8, val: f64) -> Option<i128> {
     if !val.is_finite() {
@@ -26,7 +25,6 @@ pub fn round_value_up(max_val: u128, precision: u8, val: f64) -> Option<i128> {
     }
     Some(val as i128)
 }
-
 
 pub fn round_value_down(max_val: u128, precision: u8, val: f64) -> Option<i128> {
     if !val.is_finite() {

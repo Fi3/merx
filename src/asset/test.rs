@@ -12,8 +12,8 @@
 // 10. TODO operator overloading for `== <= >= !=`                                       ###!
 // 11. impossible build an asset from float when float is more precise then asset
 // 11. TODO float precision
-use quickcheck::{quickcheck, TestResult};
 use super::Asset;
+use quickcheck::{quickcheck, TestResult};
 
 get_traits!();
 new_asset!(test_asset1, 10, 10_000_000_000);
@@ -28,18 +28,15 @@ fn prop_add_same_kind_assets(amount1: i128, amount2: i128) -> TestResult {
     let asset1 = MyAsset::try_from(amount1);
     let asset2 = MyAsset::try_from(amount2);
     match (asset1, asset2) {
-        (Ok(asset1), Ok(asset2)) => {
-           match asset1 + asset2 {
-               None => TestResult::discard(),
-               Some(asset) => {
-                   let expected = amount1 + amount2;
-                   TestResult::from_bool(expected == asset.to_int())
-               }
-           }
+        (Ok(asset1), Ok(asset2)) => match asset1 + asset2 {
+            None => TestResult::discard(),
+            Some(asset) => {
+                let expected = amount1 + amount2;
+                TestResult::from_bool(expected == asset.to_int())
+            }
         },
         _ => TestResult::discard(),
     }
-
 }
 
 #[quickcheck]
@@ -67,18 +64,16 @@ fn prop_add_same_kind_assets_frac(amount1: (i128, i128), amount2: (i128, i128)) 
     let asset1 = MyAsset::try_from(amount1);
     let asset2 = MyAsset::try_from(amount2);
     match (asset1, asset2) {
-        (Ok(asset1), Ok(asset2)) => {
-           match asset1 + asset2 {
-               None => TestResult::discard(),
-               Some(asset) => {
-                   let asset1 = amount1.0 * 10_i128.pow((10 - amount1.1) as u32);
-                   let asset2 = amount2.0 * 10_i128.pow((10 - amount2.1) as u32);
-                   let expected = asset1 + asset2;
-                   let parts = asset.to_parts();
-                   let result = (parts.0 * 10_i128.pow(10)) + parts.1;
-                   TestResult::from_bool(expected == result)
-               }
-           }
+        (Ok(asset1), Ok(asset2)) => match asset1 + asset2 {
+            None => TestResult::discard(),
+            Some(asset) => {
+                let asset1 = amount1.0 * 10_i128.pow((10 - amount1.1) as u32);
+                let asset2 = amount2.0 * 10_i128.pow((10 - amount2.1) as u32);
+                let expected = asset1 + asset2;
+                let parts = asset.to_parts();
+                let result = (parts.0 * 10_i128.pow(10)) + parts.1;
+                TestResult::from_bool(expected == result)
+            }
         },
         _ => TestResult::discard(),
     }
@@ -105,7 +100,7 @@ fn prop_impossible_build_assets_with_amount_bigger_than_upper2(
 ) -> TestResult {
     type MyAsset = Asset<test_asset_with_upper::Value>;
     if frac > 38 || (amount % 10_i128.pow(frac as u32) == 0) {
-        return TestResult::discard()
+        return TestResult::discard();
     }
     let asset = MyAsset::try_from((amount, frac));
     let actual_amount = amount / 10_i128.pow(frac as u32);
@@ -147,7 +142,7 @@ fn prop_negative_amount_are_debt2(amount1: i32, amount2: i32) -> TestResult {
     let asset1 = MyAsset::try_from(amount1 as i128).unwrap();
     let asset2 = MyAsset::try_from(amount2 as i128).unwrap();
     let amount = amount1 + amount2;
-    let asset =  (asset1 + asset2).unwrap();
+    let asset = (asset1 + asset2).unwrap();
     if amount < 0 {
         match asset {
             Asset::Debt(_) => TestResult::from_bool(true),

@@ -1,7 +1,7 @@
-use std::ops;
+use crate::fixed::IsFixed;
 use std::convert::TryFrom;
 use std::convert::TryInto;
-use crate::fixed::IsFixed;
+use std::ops;
 
 pub const fn get_inner_len(max_value: i128) -> usize {
     match max_value as u128 {
@@ -16,9 +16,9 @@ pub const fn pow_10(exp: u8) -> u128 {
     let mut x: u128 = 10;
     let mut i: u8 = 0;
     if exp == 0 {
-        return 1 as u128
+        return 1 as u128;
     } else if exp == 1 {
-        return 10 as u128
+        return 10 as u128;
     }
     while i < exp - 1 {
         x = x * 10;
@@ -121,7 +121,6 @@ pub enum Asset<T: CheckedOps> {
 }
 
 impl<T: CheckedOps> Asset<T> {
-
     #[inline]
     /// Return the numeric value of the Asset
     pub fn get_inner(self) -> T {
@@ -191,20 +190,21 @@ impl<T: TryFrom<i128> + CheckedOps> TryFrom<i128> for Asset<T> {
     }
 }
 
-impl<
-    I: TryInto<i128>,
-    F: TryInto<u128>,
-    T: TryFrom<(i128, F)> + CheckedOps> TryFrom<(I, F)
-    > for Asset<T> {
-
+impl<I: TryInto<i128>, F: TryInto<u128>, T: TryFrom<(i128, F)> + CheckedOps> TryFrom<(I, F)>
+    for Asset<T>
+{
     type Error = ();
 
     fn try_from(value: (I, F)) -> Result<Self, Self::Error> {
         let integer: i128 = (value.0).try_into().map_err(|_| ())?;
         if integer >= 0 {
-            Ok(Asset::Credit(Credit(T::try_from((integer,value.1)).map_err(|_| ())?)))
+            Ok(Asset::Credit(Credit(
+                T::try_from((integer, value.1)).map_err(|_| ())?,
+            )))
         } else {
-            Ok(Asset::Debt(Debt(T::try_from((integer, value.1)).map_err(|_| ())?)))
+            Ok(Asset::Debt(Debt(
+                T::try_from((integer, value.1)).map_err(|_| ())?,
+            )))
         }
     }
 }
@@ -234,19 +234,19 @@ macro_rules! new_asset {
     // TODO maybe Value should be defined outside the macro??
     ($mod_name:ident, $frac:tt, $max_value:tt) => {
         mod $mod_name {
+            use super::ArrayWrapper;
+            use super::Fixed;
+            use super::HasBound;
+            use super::IsFixed;
             use std::convert::TryFrom;
             use std::convert::TryInto;
-            use $crate::asset::Asset;
-            use $crate::asset::Credit;
-            use $crate::asset::Debt;
+            use std::fmt;
             use $crate::asset::get_inner_len;
             use $crate::asset::pow_10;
+            use $crate::asset::Asset;
             use $crate::asset::CheckedOps;
-            use super::Fixed;
-            use super::IsFixed;
-            use super::ArrayWrapper;
-            use super::HasBound;
-            use std::fmt;
+            use $crate::asset::Credit;
+            use $crate::asset::Debt;
             //const FRAC_B2: u128 = ((332192809489 as u128 * $frac as u128) / pow_10(11)) + 1;
             //const FRAC: usize = $frac;
 
@@ -275,10 +275,9 @@ macro_rules! new_asset {
 
             #[derive(PartialEq, Copy, Clone)]
             #[repr(align(8))]
-            pub struct Value (pub Fixed_);
+            pub struct Value(pub Fixed_);
 
             impl ArrayWrapper<LEN> for Value {
-
                 fn get_array(self) -> [u8; LEN] {
                     self.0.get_array()
                 }
@@ -318,7 +317,6 @@ macro_rules! new_asset {
             }
 
             impl CheckedOps for Value {
-
                 #[inline]
                 fn add_checked(self, rhs: Self) -> Option<Self> {
                     Some(Self(self.0.add_checked(rhs.0)?))
@@ -338,30 +336,27 @@ macro_rules! new_asset {
             }
 
             use super::FixedToInt;
-            
-            impl<
-            
-                > FixedToInt for Asset<Value> {
-                    fn to_parts(self) -> (i128, i128, u128) {
-                        self.get_inner().to_parts()
-                    }
-                    
-                    fn to_int(self) -> i128 {
-                        self.to_parts().0
-                    }
+
+            impl FixedToInt for Asset<Value> {
+                fn to_parts(self) -> (i128, i128, u128) {
+                    self.get_inner().to_parts()
                 }
+
+                fn to_int(self) -> i128 {
+                    self.to_parts().0
+                }
+            }
 
             impl fmt::Debug for Value {
                 fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                     let parts = self.to_parts();
                     f.debug_struct("Value")
-                     .field("asset name", &stringify!($mod_name))
-                     .field("int", &parts.0)
-                     .field("fract", &parts.1)
-                     .finish()
+                        .field("asset name", &stringify!($mod_name))
+                        .field("int", &parts.0)
+                        .field("fract", &parts.1)
+                        .finish()
                 }
             }
-            
         }
     };
 }
@@ -371,9 +366,9 @@ macro_rules! get_traits {
     () => {
         pub trait FixedToInt {
             fn to_parts(self) -> (i128, i128, u128);
-        
+
             fn to_int(self) -> i128;
         }
         get_fixed!();
-    }
+    };
 }
