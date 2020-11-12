@@ -25,33 +25,21 @@ performance. It is inspired by this
 Merx let you defines assets. An asset is everything that has an amount and can be divided, for
 example an asset could be a currency, a commodity, (a physical quantity?) ecc ecc
 
-An asset is characterized by a minimum quantity (unit), the smallest part of the asset that you
-can have or that it make sense to talk about. Sometimes (a lot) is possible to think of an upper
-bound for the asset, so we can define it and make impossible to create values that are too big.
+An asset is characterized by a unit (minimum quantity) and an optional upper bound.
+The unit is the smallest part of the asset that the software can express.
 
-Addition and subtraction between assets of the same type are supported out of the box with operator
+Addition between assets of the same type are supported out of the box with operator
 overloading. Multiplication and division are implemented between assets and numeric
-types with operator overloading.
+types with operator overloading. So **asset + asset**, **asset * number**,
+**asset / number** are valid operations.
 
-An asset can not owe a negative amount but can be either a credit or a debit, so that it must
-be explicitly stated when a negative amount is an option. (If a function accept Asset it means
-that work on both positive or negative amounts, but when it accept Credit or Debt you can be sure
-that it works only on positive or only on negative amounts.
+An asset can be either a credit or a debit. A debit can only contain negative amounts. A credit can
+only contains positive amounts.
 
-Every time that an asset's amount overcome the upper bound [an Error is returned][TODO]. If an
-asset do not specify an upper bound, then [`i128` is used as inner value of the asset and the upper
-bound is set to `i128::max_value()`][TODO]. 
+Merx expose `Asset` that is a wrapper around a `Debt` or a `Credit` that are wrapper around a
+numeric value.
+The wrapped numeric value is a dummy fixed value defined in [*/src/fixed.rs*](./src.fixed.rs)
 
-When we add/subtract assets or assets are multiplied by a number, the result is checked for
-overflows, and in case of an overflow an [Error is returned][TODO].
-
-TODO
-An exchange rate between two different assets can be set, then is possible to convert (explicitly)
-one asset in the other and vice versa.
-
-Merx expose `Asset` a wrapper around a `Debt` or a `Credit` that are wrapper around a numeric value,
-for now they work only with a dummy internal fixed value, but I want to make it generic so that it
-can be selected when the asset is defined.
 ```rust
 pub struct <T: NUMERIC>Debt(T);
 pub struct <T: NUMERIC>Credit(T);
@@ -62,20 +50,12 @@ pub enum Asset<T: NUMERIC> {
 }
 ```
 
-The permitted operations are: `Credit - Debt` `Credit + Credit` `Debt + Credit` `Debt + Debt` 
-`Asset + Asset`. Because `Credit` can not own a negative value, `Debt` can not owe a positive value
-and `Asset` is either a `Credit` or a `Debt`, is not clear what addition and subtraction between
-assets means in my opinion the possibilities that make more sense are:
-1. only add(A, B) exist:
-`Asset(x) + Asset(-y) = Asset(x +  (-y))`
-2. add(A, B) == sub(A, B) 
-`Asset(x) + Asset(-y) = Asset(x +  (-y)) && Asset(x) - Asset(-y) = Asset(x + (-y))`
-3. add(A, B) == sub(A, -B)
-`Asset(x) + Asset(-y) = Asset(x +  (-y)) && Asset(x) - Asset(-y) = Asset(x - (-y))`
-
-For the moment add and sub behave like (1), because I think that is the less error prone behavior
-and the merx main goal is safety, by the way usability is also important and I think that (1) is
-not very usable.
+The permitted operations are: 
+* `Credit - Debt` that is positive_value + negative_value [TODO remove it it should be `Credit + Debt`]
+* `Credit + Credit` that is value + value
+* `Debt + Credit` that is negative_value + positive_value
+* `Debt + Debt` that is negative_value + negative_value
+* `Asset + Asset` that is value + value
 
 ## Example
 ```rust
@@ -125,16 +105,12 @@ fn add_debts<T: CheckedOps>(x: Debt<T>, y: Debt<T>) -> Option<Debt<T>> {
     x + y
 }
 
-// Adding debts can only result in a Debt
-fn add_debts2<T: CheckedOps>(x: Debt<T>, y: Debt<T>) -> Option<Debt<T>> {
-    x + y
-}
 ```
 
 ## Safety
 
-1. Is impossible to add assets of different types or asset with numeric values.
-2. Every operation that concern assets (add mul div) is checked and fail on incorrect values.
+1. Is impossible to add assets of different types or add an asset with a numeric value.
+2. Every operation that concern an asset (add mul div) is checked and fail on incorrect values.
 3. Build assets from primitive types is safe [TODO].
 4. When the result of an operation is positive we have a `Credit` otherwise we have `Debt`, is not
 possible to build a `Credit` with a negative value or a `Debt` with a positive value.
@@ -142,8 +118,8 @@ possible to build a `Credit` with a negative value or a `Debt` with a positive v
 
 ## Performance
 
-Internally adding assets mean do a `checked_add` and check if the value is less or equal than max. The 
-library seems to be a little faster in doing that than a plain function like the below:
+Merx in order to add assets do a checked add. From the benchmark it seems that Merx is a
+little faster in doing that than a plain function like the one below.
 
 ```rust
 fn checked_add_and_compare_64(a: i64, b: i64, max: i64) -> Option<i64> {
@@ -210,18 +186,25 @@ Below a list of crates that solve problems that are similar or related at the on
 
 ## Todo
 
+ - [ ] Fix assets with 4 decimal precision
+ - [ ] Remove support fro `Credit<T> + Debt<T>`
+ - [ ] Conversion between Asset Debits and Credits
+ - [ ] Error on upper_bound overflow
+ - [ ] Set upper bound for asset with no upper bound
+ - [ ] Make the inner numeric value generic over ...?
  - [ ] Use the crate fixed as inner type (when it will support generic const)
  - [ ] Impl PartialEq for Asset and all the primitive numeric types
  - [ ] Add error with thiserror
  - [ ] Serde serialize deserialize
  - [ ] Division and multiplication between asset, float and between asset and fixed
  - [ ] Add all standard operations for rationals like truncate floor ecc ecc
- - [ ] Add conversion between assets
+ - [ ] Add conversion between assets with exchange rate setted
  - [ ] A lot of public thinghs should be private
  - [ ] Benchmarks
  - [ ] Documentation
  - [ ] Precise modality with bigint insted of fixed point
  - [ ] Add the possibility to define a rounding strategy when an asset is defined
+ - [ ] Build asset from primitive values is safe
 
 ## License
 
