@@ -5,6 +5,8 @@
 **mèr | ce** s. f. [lat. merx mercis]:
 [*something meant to be divided, distributable portion.*](https://www.etimo.it/?term=merce&find=Cerca)
 
+[Here](https://github.com/fi3/pinoedino) a test case for Merx.
+
 ##
 
 **Pre-beta version** if you think that merx can be useful or you like it, [here](https://users.rust-lang.org/t/help-annuncment-merx-let-you-define-decimal-safe-types/40531) a
@@ -186,6 +188,7 @@ Below a list of crates that solve problems that are similar or related at the on
 
 ## Todo
 
+ - [ ] Documentation
  - [ ] Fix assets with 4 decimal precision
  - [ ] Remove support fro `Credit<T> + Debt<T>`
  - [ ] Conversion between Asset Debits and Credits
