@@ -1,8 +1,6 @@
 #![feature(const_fn)]
 #![feature(const_panic)]
-#![feature(const_if_match)]
 #![feature(const_generics)]
-#![feature(const_loop)]
 #![allow(incomplete_features)]
 #![allow(unused_imports)]
 #![allow(dead_code)]
