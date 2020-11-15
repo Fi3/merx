@@ -1,4 +1,4 @@
-use crate::fixed::IsFixed;
+use crate::fixed::FloatRounding;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::ops;
@@ -209,11 +209,25 @@ impl<I: TryInto<i128>, F: TryInto<u128>, T: TryFrom<(i128, F)> + CheckedOps> Try
     }
 }
 
-impl<T: TryFrom<f64> + CheckedOps> TryFrom<f64> for Asset<T> {
+impl<T: TryFrom<(i128, usize)> + CheckedOps> TryFrom<&str> for Asset<T> {
     type Error = ();
 
-    fn try_from(value: f64) -> Result<Self, Self::Error> {
-        if value >= 0.0 {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let decimal_part = match value.find(".") {
+            Some(x) => value.split_at(x + 1).1.len(),
+            None => 0,
+        };
+        let mantissa: String = value.chars().filter(|x| *x != '.').collect();
+        let value = (str::parse::<i64>(&mantissa).unwrap(), decimal_part);
+        Ok(Asset::try_from(value)?)
+    }
+}
+
+impl<T: TryFrom<(f64, FloatRounding)> + CheckedOps> TryFrom<(f64, FloatRounding)> for Asset<T> {
+    type Error = ();
+
+    fn try_from(value: (f64, FloatRounding)) -> Result<Self, Self::Error> {
+        if value.0 >= 0.0 {
             Ok(Asset::Credit(Credit(T::try_from(value).map_err(|_| ())?)))
         } else {
             Ok(Asset::Debt(Debt(T::try_from(value).map_err(|_| ())?)))
@@ -236,6 +250,7 @@ macro_rules! new_asset {
         mod $mod_name {
             use super::ArrayWrapper;
             use super::Fixed;
+            use super::FloatRounding;
             use super::HasBound;
             use super::IsFixed;
             use std::convert::TryFrom;
@@ -299,10 +314,10 @@ macro_rules! new_asset {
                 }
             }
 
-            impl TryFrom<f64> for Value {
+            impl TryFrom<(f64, FloatRounding)> for Value {
                 type Error = ();
 
-                fn try_from(value: f64) -> Result<Self, Self::Error> {
+                fn try_from(value: (f64, FloatRounding)) -> Result<Self, Self::Error> {
                     Ok(Value(Fixed_::try_from(value)?))
                 }
             }

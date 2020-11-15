@@ -1,6 +1,12 @@
+use crate::fixed::FloatRounding;
 use std::convert::TryFrom;
 
-pub fn checked_int_from_f64(max_val: u128, precision: u8, val: f64) -> Option<i128> {
+pub fn checked_int_from_f64(
+    max_val: u128,
+    precision: u8,
+    val: f64,
+    rounding: FloatRounding,
+) -> Option<i128> {
     if !val.is_finite() {
         return None;
     }
@@ -11,7 +17,13 @@ pub fn checked_int_from_f64(max_val: u128, precision: u8, val: f64) -> Option<i1
     if val.fract() == 0.0 {
         Some(val as i128)
     } else {
-        None
+        let val = match rounding {
+            FloatRounding::Floor => val.floor(),
+            FloatRounding::Ceil => val.ceil(),
+            FloatRounding::Round => val.round(),
+            FloatRounding::Trunc => val.trunc(),
+        };
+        Some(val as i128)
     }
 }
 

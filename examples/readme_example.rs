@@ -14,10 +14,11 @@ get_traits!();
 // Create a new asset called bitcoin with 8 decimal digits and a max value of 21 million of units
 new_asset!(bitcoin, 8, 21_000_000);
 // Create a new asset called usd with 2 decimal digits and a max value of 14_000_000_000_000 units
-new_asset!(usd, 2, 14_000_000_000_000);
+new_asset!(usd, 4, 14_000_000_000_000);
 
 type Bitcoin = Asset<bitcoin::Value>;
 type Usd = Asset<usd::Value>;
+type Usd2 = Asset<usd::Value>;
 
 fn main() {
     // A tuple that define a decimal value as (mantissa, decimal part)
@@ -26,6 +27,17 @@ fn main() {
     let to_pay = Bitcoin::try_from(-29).unwrap();
     let remain = (tot_amount + to_pay).unwrap();
     println!("{:#?}", remain);
+
+    // With a float also a rounding method must be provided, this because Merx must know what to do
+    // with floats with higher precision than the asset. Possible rounding methods are Trunc Floor
+    // Ceil Round and they behaved the same as rust's f64 methods with the same names.
+    let usd = Usd::try_from((10.87, FloatRounding::Trunc)).unwrap();
+    println!("{:#?}", usd);
+
+    // When the source of the float is a text string the best thing to do is to parse the value
+    // from a string.
+    let usd = Usd::try_from("10.87").unwrap();
+    println!("{:#?}", usd);
 
     // TODO smouthly conversion
     //let x: USD = match remain {

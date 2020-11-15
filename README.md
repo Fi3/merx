@@ -83,6 +83,17 @@ fn main() {
     let remain = (tot_amount + to_pay).unwrap();
     println!("{:#?}", remain);
 
+    // With a float also a rounding method must be provided, this because Merx must know what to do
+    // with floats with higher precision than the asset. Possible rounding methods are Trunc Floor
+    // Ceil Round and they behaved the same as rust's f64 methods with the same names.
+    let usd = Usd::try_from((10.87, FloatRounding::Trunc)).unwrap();
+    println!("{:#?}", usd);
+
+    // When the source of the float is a text string the best thing to do is to parse the value
+    // from a string.
+    let usd = Usd::try_from("10.87").unwrap();
+    println!("{:#?}", usd);
+
     // TODO smouthly conversion
     //let x: USD = match remain {
     //    Credit(x) => interests(USD::from(x), 12, 3);
@@ -189,7 +200,8 @@ Below a list of crates that solve problems that are similar or related at the on
 ## Todo
 
  - [ ] Documentation
- - [ ] Fix assets with 4 decimal precision
+ - [ ] Better zero
+ - [x] Fix try_from floating point 
  - [ ] Remove support fro `Credit<T> + Debt<T>`
  - [ ] Conversion between Asset Debits and Credits
  - [ ] Error on upper_bound overflow

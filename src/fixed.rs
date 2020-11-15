@@ -1,6 +1,13 @@
 use crate::utils::numeric_methods::*;
 use std::convert::TryFrom;
 
+pub enum FloatRounding {
+    Floor,
+    Ceil,
+    Round,
+    Trunc,
+}
+
 pub trait ArrayWrapper<const LEN: usize>: Sized {
     fn get_array(self) -> [u8; LEN];
     fn from_array_unchecked(value: [u8; LEN]) -> Self;
@@ -150,7 +157,7 @@ pub trait IsFixed<const LEN: usize, const MAX: i128, const POW: u128>:
 macro_rules! get_fixed {
     () => {
         use std::convert::TryFrom;
-        use $crate::fixed::{ArrayWrapper, HasBound, HasFixedOps, IsFixed};
+        use $crate::fixed::{ArrayWrapper, FloatRounding, HasBound, HasFixedOps, IsFixed};
         use $crate::utils::numeric_methods::*;
 
         const I32_LEN: usize = 4;
@@ -355,31 +362,6 @@ macro_rules! get_fixed {
         fixed_try_from_parts!(I64_LEN);
         fixed_try_from_parts!(I128_LEN);
 
-        pub enum FloatRounding {
-            Up,
-            Down,
-        }
-
-        macro_rules! fixed_try_from_float {
-            ($len:ident) => {
-                impl<const MAX: i128, const POW: u128> TryFrom<f64> for Fixed<$len, MAX, POW> {
-                    type Error = ();
-
-                    fn try_from(value: f64) -> Result<Fixed<$len, MAX, POW>, Self::Error> {
-                        let frac = (POW as f64).log10() as u8;
-                        let value = checked_int_from_f64(MAX as u128, frac, value).ok_or(())?;
-                        let buf = <[u8; $len]>::try_from(&value.to_le_bytes()[0..$len]).unwrap();
-                        Ok(Self::from_array_unchecked(buf))
-                        //Self::try_from(value)
-                    }
-                }
-            };
-        }
-
-        fixed_try_from_float!(I32_LEN);
-        fixed_try_from_float!(I64_LEN);
-        fixed_try_from_float!(I128_LEN);
-
         macro_rules! fixed_try_from_float_rounded {
             ($len:ident) => {
                 impl<const MAX: i128, const POW: u128> TryFrom<(f64, FloatRounding)>
@@ -391,14 +373,10 @@ macro_rules! get_fixed {
                         value: (f64, FloatRounding),
                     ) -> Result<Fixed<$len, MAX, POW>, Self::Error> {
                         let frac = (POW as f64).log10() as u8;
-                        match value.1 {
-                            FloatRounding::Up => Self::try_from(
-                                round_value_up(MAX as u128, frac, value.0).ok_or(())?,
-                            ),
-                            FloatRounding::Down => Self::try_from(
-                                round_value_down(MAX as u128, frac, value.0).ok_or(())?,
-                            ),
-                        }
+                        let value =
+                            checked_int_from_f64(MAX as u128, frac, value.0, value.1).ok_or(())?;
+                        let buf = <[u8; $len]>::try_from(&value.to_le_bytes()[0..$len]).unwrap();
+                        Ok(Self::from_array_unchecked(buf))
                     }
                 }
             };

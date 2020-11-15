@@ -10,8 +10,6 @@
 // 9. overflowing operations on Assets result in None
 // 8. TODO exchange rates
 // 10. TODO operator overloading for `== <= >= !=`                                       ###!
-// 11. impossible build an asset from float when float is more precise then asset
-// 11. TODO float precision
 use super::Asset;
 use quickcheck::{quickcheck, TestResult};
 
@@ -186,30 +184,10 @@ fn prop_error_on_overflow2(amount: i32, operator: i32) -> TestResult {
     }
 }
 
-#[quickcheck]
-fn prop_impossible_build_from_too_precise_val(amount: f32) -> TestResult {
-    type MyAsset = Asset<test_asset_low_precision::Value>;
-    let asset = MyAsset::try_from(amount as f64);
-    let stringified_amnt = amount.to_string();
-    let decimal_part = stringified_amnt
-        .chars()
-        .position(|x| x == '.')
-        .map(|x| (stringified_amnt.len() - 1) - x)
-        .unwrap_or(0);
-    if decimal_part > 2 {
-        match asset {
-            Err(_) => TestResult::from_bool(true),
-            Ok(_) => TestResult::from_bool(false),
-        }
-    } else {
-        TestResult::discard()
-    }
-}
-
 #[test]
 fn it_works() {
     type MyAsset = Asset<test_asset_low_precision::Value>;
-    let asset1 = MyAsset::try_from(73.5).unwrap();
+    let asset1 = MyAsset::try_from((73.5, crate::fixed::FloatRounding::Trunc)).unwrap();
     println!("{:#?}", asset1);
     assert_eq!((73, 50, 100), asset1.to_parts());
 }
